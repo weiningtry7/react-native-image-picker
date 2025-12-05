@@ -31,7 +31,7 @@ export type ImagePickerOption = {
     showSelectedIndex: boolean, // 是否显示序号， 默认不显示
   }
 
-  interface SelectedPhoto {
+  export interface SelectedPhoto {
     width: number, 	 //图片宽度
     height: number,  	//图片高度
     uri: string,	  //图片路径
@@ -45,7 +45,7 @@ const { width } = Dimensions.get('window');
 /**
  * 默认参数
  */
-const defaultOptions = {
+export const defaultOptions = {
     imageCount: 6,             // 最大选择图片数目，默认6
     isRecordSelected: false,   // 是否已选图片
     isCamera: true,            // 是否允许用户在内部拍照，默认true
