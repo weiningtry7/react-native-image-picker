@@ -1,4 +1,4 @@
-import NativeImagePicker, { defaultOptions, ImagePickerOption } from './NativeImagePicker';
+import NativeImagePicker, { defaultOptions, type ImagePickerOption } from './NativeImagePicker';
 
 const HTNativeImagePicker = (() => {
   return {
