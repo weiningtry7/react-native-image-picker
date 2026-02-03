@@ -1,5 +1,5 @@
-import NativeImagePicker, { defaultOptions, type ImagePickerOption } from './NativeImagePicker';
-
+import NativeImagePicker, { defaultOptions, type ImagePickerOption, type SelectedPhoto } from './NativeImagePicker';
+export type { SelectedPhoto, ImagePickerOption };
 const HTNativeImagePicker = (() => {
   return {
     asyncShowImagePicker: (options: ImagePickerOption ) => {

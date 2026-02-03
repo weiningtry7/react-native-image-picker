@@ -73,7 +73,7 @@ export const defaultOptions = {
     showSelectedIndex: false, // 是否显示序号， 默认不显示
 };
 export interface Spec extends TurboModule {
-  asyncShowImagePicker(options:ImagePickerOption): Promise<Array<SelectedPhoto>>;
+  asyncShowImagePicker(options:Object): Promise<Array<SelectedPhoto>>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('NativeImagePicker');
