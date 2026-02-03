@@ -11,13 +11,13 @@ This is a fork of  [react-native-syan-image-picker](https://github.com/syanbo/re
 ### 安装
 
 ```
-yarn add @hotta/react-native-imagepicker@0.1.3
+yarn add @hotta/react-native-imagepicker
 ```
 
 ### 使用方法
 
 ```
-import HTImagePicker from '@ht/react-native-image-picker/src';
+import HTImagePicker from '@hotta/react-native-imagepicker';
 const options: any = {
       mediaType: 'photo',
       sortOrder: 'asc',
