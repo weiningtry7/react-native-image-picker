@@ -1,6 +1,6 @@
 {
   "name": "@hotta/react-native-imagepicker",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "@hotta/react-native-imagepicker",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
