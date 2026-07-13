@@ -50,6 +50,53 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
             })
     }
 
+    override fun asyncShowVideoPicker(
+        options: ReadableMap?,
+        promise: Promise?
+    ) {
+        pickerOptions = options;
+        val videoCount = options?.getInt("videoCount") ?: 1
+        PictureSelector.create(reactApplicationContext.currentActivity)
+            .openGallery(SelectMimeType.ofVideo())
+            .setMaxSelectNum(videoCount)
+            .setImageEngine(imageEngine)
+            .forResult(object : OnResultCallbackListener<LocalMedia> {
+                override fun onResult(localMediaList: ArrayList<LocalMedia?>?) {
+                    var data = WritableNativeArray()
+                    localMediaList?.forEach { media -> media?.let {
+                        data.pushMap(getVideoResult(media))
+                    } }
+                    promise?.resolve(data)
+                }
+
+                override fun onCancel() {
+
+                }
+
+            })
+    }
+
+    private fun getVideoResult(media: LocalMedia): WritableMap {
+        val videoMap: WritableMap = WritableNativeMap()
+        var path: String = media.path
+        val isAndroidQ = SdkVersionUtils.isQ()
+        val isAndroidR = SdkVersionUtils.isR()
+        if (isAndroidQ) {
+            path = media.availablePath
+        }
+        if (isAndroidR) {
+            path = media.realPath;
+        }
+        videoMap.putString("path", "file://$path")
+        videoMap.putString("mime", media.mimeType ?: "video/mp4")
+        videoMap.putDouble("width", media.width.toDouble())
+        videoMap.putDouble("height", media.height.toDouble())
+        videoMap.putDouble("duration", media.duration * 1000.0)
+        videoMap.putInt("size", media.size)
+        videoMap.putString("filename", media.fileName)
+        return videoMap
+    }
+
     private fun getImageResult(media: LocalMedia): WritableMap {
         val imageMap: WritableMap = WritableNativeMap()
         var path: String = media.path

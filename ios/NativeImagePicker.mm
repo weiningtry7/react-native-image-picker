@@ -7,8 +7,6 @@
 @interface NativeImagePicker ()
 
 @property (nonatomic, strong) UIImagePickerController *imagePickerVc;
-@property (nonatomic, strong) NSDictionary *pickOptions;
-
 /**
  保存Promise的resolve block
  */
@@ -27,7 +25,9 @@
 @property (nonatomic, strong) NSMutableArray *selectedAssets;
 @end
 @implementation NativeImagePicker
-
+{
+    std::optional<JS::NativeImagePicker::ImagePickerOption> _cameraOptions;
+}
 
 - (instancetype)init {
     self = [super init];
@@ -52,31 +52,88 @@
     _selectedAssets = nil;
 }
 
-- (void)asyncShowImagePicker:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
-    self.pickOptions = options;
+- (void)asyncShowImagePicker:(JS::NativeImagePicker::ImagePickerOption &)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+    _cameraOptions = options;
     self.resolveBlock = resolve;
     self.rejectBlock = reject;
     self.callback = nil;
     [self openImagePicker];
 }
 
+- (void)asyncShowVideoPicker:(JS::NativeImagePicker::VideoPickerOption &)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+    self.resolveBlock = resolve;
+    self.rejectBlock = reject;
+    self.callback = nil;
+    [self openVideoPickerWithOptions:options];
+}
+
+- (void)openVideoPickerWithOptions:(JS::NativeImagePicker::VideoPickerOption &)options {
+    NSInteger videoCount = options.videoCount();
+    BOOL isCamera = options.isCamera();
+    BOOL sortAscendingByModificationDate = options.sortAscendingByModificationDate();
+    BOOL showSelectedIndex = options.showSelectedIndex();
+
+    TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:videoCount delegate:self];
+    imagePickerVc.iconThemeColor = [UIColor colorWithRed:255.0/255.0 green:177.0/255.0 blue:82.0/255.0 alpha:1.0];
+    imagePickerVc.maxImagesCount = videoCount;
+    imagePickerVc.allowPickingImage = NO;
+    imagePickerVc.allowPickingVideo = YES;
+    imagePickerVc.allowTakeVideo = isCamera;
+    imagePickerVc.allowTakePicture = NO;
+    imagePickerVc.allowPickingGif = NO;
+    imagePickerVc.allowCrop = NO;
+    imagePickerVc.showSelectedIndex = showSelectedIndex;
+    imagePickerVc.sortAscendingByModificationDate = sortAscendingByModificationDate;
+    imagePickerVc.modalPresentationStyle = UIModalPresentationFullScreen;
+
+    if (videoCount == 1) {
+        imagePickerVc.showSelectBtn = NO;
+    }
+
+    __weak TZImagePickerController *weakPickerVc = imagePickerVc;
+    [imagePickerVc setDidFinishPickingPhotosWithInfosHandle:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto, NSArray<NSDictionary *> *infos) {
+        [weakPickerVc showProgressHUD];
+        NSMutableArray *videoResults = [NSMutableArray array];
+        [assets enumerateObjectsUsingBlock:^(PHAsset * _Nonnull asset, NSUInteger idx, BOOL * _Nonnull stop) {
+            if (asset.mediaType == PHAssetMediaTypeVideo) {
+                [[TZImageManager manager] getVideoOutputPathWithAsset:asset presetName:AVAssetExportPresetHighestQuality success:^(NSString *outputPath) {
+                    [videoResults addObject:[self handleVideoPickerData:outputPath asset:asset]];
+                    if ([videoResults count] == [assets count]) {
+                        [self invokeSuccessWithResult:videoResults];
+                    }
+                } failure:^(NSString *errorMessage, NSError *error) {
+                    [self invokeError];
+                }];
+            }
+        }];
+        [weakPickerVc hideProgressHUD];
+    }];
+
+    [imagePickerVc setImagePickerControllerDidCancelHandle:^{
+        [self invokeError];
+        [weakPickerVc hideProgressHUD];
+    }];
+
+    [[self topViewController] presentViewController:imagePickerVc animated:YES completion:nil];
+}
+
 - (void)openImagePicker {
     // 照片最大可选张数
-    NSInteger imageCount = [self.pickOptions sy_integerForKey:@"imageCount"];
+    NSInteger imageCount = _cameraOptions->imageCount();
     // 显示内部拍照按钮
-    BOOL isCamera        = [self.pickOptions sy_boolForKey:@"isCamera"];
-    BOOL isCrop          = [self.pickOptions sy_boolForKey:@"isCrop"];
-    BOOL isGif           = [self.pickOptions sy_boolForKey:@"isGif"];
-    BOOL showCropCircle  = [self.pickOptions sy_boolForKey:@"showCropCircle"];
-    BOOL isRecordSelected = [self.pickOptions sy_boolForKey:@"isRecordSelected"];
-    BOOL allowPickingOriginalPhoto = [self.pickOptions sy_boolForKey:@"allowPickingOriginalPhoto"];
-    BOOL allowPickingMultipleVideo = [self.pickOptions sy_boolForKey:@"allowPickingMultipleVideo"];
-    BOOL sortAscendingByModificationDate = [self.pickOptions sy_boolForKey:@"sortAscendingByModificationDate"];
-    BOOL showSelectedIndex = [self.pickOptions sy_boolForKey:@"showSelectedIndex"];
-    NSInteger CropW      = [self.pickOptions sy_integerForKey:@"CropW"];
-    NSInteger CropH      = [self.pickOptions sy_integerForKey:@"CropH"];
-    NSInteger circleCropRadius = [self.pickOptions sy_integerForKey:@"circleCropRadius"];
-    NSInteger   quality  = [self.pickOptions sy_integerForKey:@"quality"];
+    BOOL isCamera        = _cameraOptions->isCamera();
+    BOOL isCrop          = _cameraOptions->isCrop();
+    BOOL isGif           = _cameraOptions->isGif();
+    BOOL showCropCircle  = _cameraOptions->showCropCircle();
+    BOOL isRecordSelected = _cameraOptions->isRecordSelected();
+    BOOL allowPickingOriginalPhoto = _cameraOptions->allowPickingOriginalPhoto();
+    BOOL allowPickingMultipleVideo = _cameraOptions->allowPickingMultipleVideo();
+    BOOL sortAscendingByModificationDate = _cameraOptions->sortAscendingByModificationDate();
+    BOOL showSelectedIndex = _cameraOptions->showSelectedIndex();
+    NSInteger CropW      = _cameraOptions->CropW();
+    NSInteger CropH      = _cameraOptions->CropH();
+    NSInteger circleCropRadius = _cameraOptions->circleCropRadius();
+    NSInteger   quality  = _cameraOptions->quality();
 
     TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:imageCount delegate:self];
     imagePickerVc.iconThemeColor = [UIColor colorWithRed:255.0/255.0 green:177.0/255.0 blue:82.0/255.0 alpha:1.0];
@@ -208,12 +265,12 @@
                     [tzImagePickerVc hideProgressHUD];
 
                     TZAssetModel *assetModel = [[TZImageManager manager] createModelWithAsset:asset];
-                    BOOL isCrop          = [self.pickOptions sy_boolForKey:@"isCrop"];
-                    BOOL showCropCircle  = [self.pickOptions sy_boolForKey:@"showCropCircle"];
-                    NSInteger CropW      = [self.pickOptions sy_integerForKey:@"CropW"];
-                    NSInteger CropH      = [self.pickOptions sy_integerForKey:@"CropH"];
-                    NSInteger circleCropRadius = [self.pickOptions sy_integerForKey:@"circleCropRadius"];
-                    NSInteger quality = [self.pickOptions sy_integerForKey:@"quality"];
+                    BOOL isCrop          = self->_cameraOptions->isCrop();
+                    BOOL showCropCircle  = self->_cameraOptions->showCropCircle();
+                    NSInteger CropW      = self->_cameraOptions->CropW();
+                    NSInteger CropH      = self->_cameraOptions->CropH();
+                    NSInteger circleCropRadius = self->_cameraOptions->circleCropRadius();
+                    NSInteger   quality = self->_cameraOptions->quality();
 
                     if (isCrop) {
                         TZImagePickerController *imagePicker = [[TZImagePickerController alloc] initCropTypeWithAsset:assetModel.asset photo:image completion:^(UIImage *cropImage, id asset) {
@@ -253,7 +310,7 @@
 }
 
 - (BOOL)isAssetCanSelect:(PHAsset *)asset {
-    BOOL allowPickingGif = [self.pickOptions sy_boolForKey:@"isGif"];
+    BOOL allowPickingGif = _cameraOptions->isGif();
     BOOL isGIF = [[TZImageManager manager] getAssetType:asset] == TZAssetModelMediaTypePhotoGif;
     if (!allowPickingGif && isGIF) {
         return NO;
@@ -311,7 +368,7 @@
     NSString *fileExtension    = [filename pathExtension];
     NSMutableString *filePath = [NSMutableString string];
     BOOL isPNG = [fileExtension hasSuffix:@"PNG"] || [fileExtension hasSuffix:@"png"];
-    BOOL compressFocusAlpha = [self.pickOptions sy_boolForKey:@"compressFocusAlpha"];
+    BOOL compressFocusAlpha = _cameraOptions->compressFocusAlpha();
     
     if (isPNG) {
         [filePath appendString:[NSString stringWithFormat:@"%@SyanImageCaches/%@", NSTemporaryDirectory(), filename]];
@@ -328,7 +385,7 @@
     NSInteger size = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil].fileSize;
     photo[@"size"] = @(size);
     photo[@"mediaType"] = @(phAsset.mediaType);
-    if ([self.pickOptions sy_boolForKey:@"enableBase64"]) {
+    if (_cameraOptions->enableBase64()) {
         if(isPNG){
             photo[@"base64"] = [NSString stringWithFormat:@"data:image/png;base64,%@", [writeData base64EncodedStringWithOptions:0]];
         }else{
@@ -350,7 +407,7 @@
     NSData *writeData = nil;
     NSMutableString *filePath = [NSMutableString string];
     BOOL isPNG = [fileExtension hasSuffix:@"PNG"] || [fileExtension hasSuffix:@"png"];
-    BOOL compressFocusAlpha = [self.pickOptions sy_boolForKey:@"compressFocusAlpha"];
+    BOOL compressFocusAlpha = _cameraOptions->compressFocusAlpha();
     
     if (isGIF) {
         image = [UIImage sd_tz_animatedGIFWithData:data];
@@ -374,7 +431,7 @@
     NSInteger size      = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil].fileSize;
     photo[@"size"]      = @(size);
     photo[@"mediaType"] = @(phAsset.mediaType);
-    if ([self.pickOptions sy_boolForKey:@"enableBase64"] && !isGIF) {
+    if (_cameraOptions->enableBase64() && !isGIF) {
         if(isPNG){
             photo[@"base64"] = [NSString stringWithFormat:@"data:image/png;base64,%@", [writeData base64EncodedStringWithOptions:0]];
         }else{
@@ -385,7 +442,7 @@
     return photo;
 }
 
-/// 处理视频数据
+/// 处理视频数据 (混合选择模式)
 - (NSDictionary *)handleVideoData:(NSString *)outputPath asset:(PHAsset *)asset coverImage:(UIImage *)coverImage quality:(CGFloat)quality {
     NSMutableDictionary *video = [NSMutableDictionary dictionary];
     video[@"uri"] = outputPath;
@@ -401,6 +458,26 @@
     video[@"coverUri"] = [self handleCropImage:coverImage phAsset:asset quality:quality][@"uri"];
     video[@"favorite"] = @(asset.favorite);
     video[@"mediaType"] = @(asset.mediaType);
+
+    return video;
+}
+
+/// 处理视频数据 (纯视频选择模式，返回格式兼容 react-native-image-crop-picker)
+- (NSDictionary *)handleVideoPickerData:(NSString *)outputPath asset:(PHAsset *)asset {
+    NSMutableDictionary *video = [NSMutableDictionary dictionary];
+    video[@"path"] = [NSString stringWithFormat:@"file://%@", outputPath];
+    video[@"size"] = @([[[NSFileManager defaultManager] attributesOfItemAtPath:outputPath error:nil] fileSize]);
+    video[@"width"] = @(asset.pixelWidth);
+    video[@"height"] = @(asset.pixelHeight);
+    video[@"duration"] = @((long long)(asset.duration * 1000));
+    video[@"mime"] = @"video/mp4";
+    video[@"filename"] = [asset valueForKey:@"filename"];
+    video[@"localIdentifier"] = asset.localIdentifier;
+    video[@"sourceURL"] = [NSString stringWithFormat:@"assets-library://asset/asset.mov?id=%@&ext=mov", asset.localIdentifier];
+    // modificationDate
+    if (asset.modificationDate) {
+        video[@"modificationDate"] = [NSString stringWithFormat:@"%.0f", [asset.modificationDate timeIntervalSince1970]];
+    }
 
     return video;
 }
