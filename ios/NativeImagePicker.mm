@@ -90,22 +90,21 @@
     }
 
     __weak TZImagePickerController *weakPickerVc = imagePickerVc;
-    [imagePickerVc setDidFinishPickingPhotosWithInfosHandle:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto, NSArray<NSDictionary *> *infos) {
-        [weakPickerVc showProgressHUD];
-        NSMutableArray *videoResults = [NSMutableArray array];
-        [assets enumerateObjectsUsingBlock:^(PHAsset * _Nonnull asset, NSUInteger idx, BOOL * _Nonnull stop) {
-            if (asset.mediaType == PHAssetMediaTypeVideo) {
-                [[TZImageManager manager] getVideoOutputPathWithAsset:asset presetName:AVAssetExportPresetHighestQuality success:^(NSString *outputPath) {
-                    [videoResults addObject:[self handleVideoPickerData:outputPath asset:asset]];
-                    if ([videoResults count] == [assets count]) {
-                        [self invokeSuccessWithResult:videoResults];
-                    }
-                } failure:^(NSString *errorMessage, NSError *error) {
-                    [self invokeError];
-                }];
-            }
+    // 使用专门的视频回调
+    [imagePickerVc setDidFinishPickingVideoHandle:^(UIImage *coverImage, PHAsset *asset) {
+      
+        [[TZImageManager manager] getVideoOutputPathWithAsset:asset presetName:AVAssetExportPresetPassthrough success:^(NSString *outputPath) {
+            // 构建单个结果
+            NSDictionary *result = [self handleVideoPickerData:outputPath asset:asset];
+            
+            // 隐藏 HUD 并回调
+            [self invokeSuccessWithResult:@[result]];
+            [weakPickerVc dismissViewControllerAnimated:YES completion:nil];
+            
+        } failure:^(NSString *errorMessage, NSError *error) {
+            [self invokeError];
+            [weakPickerVc dismissViewControllerAnimated:YES completion:nil];
         }];
-        [weakPickerVc hideProgressHUD];
     }];
 
     [imagePickerVc setImagePickerControllerDidCancelHandle:^{
@@ -469,7 +468,7 @@
     video[@"size"] = @([[[NSFileManager defaultManager] attributesOfItemAtPath:outputPath error:nil] fileSize]);
     video[@"width"] = @(asset.pixelWidth);
     video[@"height"] = @(asset.pixelHeight);
-    video[@"duration"] = @((long long)(asset.duration * 1000));
+    video[@"duration"] = @((long long)(asset.duration));
     video[@"mime"] = @"video/mp4";
     video[@"filename"] = [asset valueForKey:@"filename"];
     video[@"localIdentifier"] = asset.localIdentifier;
