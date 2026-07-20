@@ -7,6 +7,8 @@
 @interface NativeImagePicker ()
 
 @property (nonatomic, strong) UIImagePickerController *imagePickerVc;
+
+@property (nonatomic, strong) NSDictionary *pickOptions;
 /**
  保存Promise的resolve block
  */
@@ -25,9 +27,6 @@
 @property (nonatomic, strong) NSMutableArray *selectedAssets;
 @end
 @implementation NativeImagePicker
-{
-    std::optional<JS::NativeImagePicker::ImagePickerOption> _cameraOptions;
-}
 
 - (instancetype)init {
     self = [super init];
@@ -52,26 +51,26 @@
     _selectedAssets = nil;
 }
 
-- (void)asyncShowImagePicker:(JS::NativeImagePicker::ImagePickerOption &)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
-    _cameraOptions = options;
+- (void)asyncShowImagePicker:(NSDictionary *)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+    self.pickOptions = options;
     self.resolveBlock = resolve;
     self.rejectBlock = reject;
     self.callback = nil;
     [self openImagePicker];
 }
 
-- (void)asyncShowVideoPicker:(JS::NativeImagePicker::VideoPickerOption &)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
+- (void)asyncShowVideoPicker:(NSDictionary *)options resolve:(nonnull RCTPromiseResolveBlock)resolve reject:(nonnull RCTPromiseRejectBlock)reject {
     self.resolveBlock = resolve;
     self.rejectBlock = reject;
     self.callback = nil;
     [self openVideoPickerWithOptions:options];
 }
 
-- (void)openVideoPickerWithOptions:(JS::NativeImagePicker::VideoPickerOption &)options {
-    NSInteger videoCount = options.videoCount();
-    BOOL isCamera = options.isCamera();
-    BOOL sortAscendingByModificationDate = options.sortAscendingByModificationDate();
-    BOOL showSelectedIndex = options.showSelectedIndex();
+- (void)openVideoPickerWithOptions:(NSDictionary *)options {
+    NSInteger videoCount = [options sy_integerForKey:@"videoCount"];
+    BOOL isCamera = [options sy_boolForKey:@"isCamera"];
+    BOOL sortAscendingByModificationDate = [options sy_boolForKey:@"sortAscendingByModificationDate"];
+    BOOL showSelectedIndex = [options sy_boolForKey:@"showSelectedIndex"];
 
     TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:videoCount delegate:self];
     imagePickerVc.iconThemeColor = [UIColor colorWithRed:255.0/255.0 green:177.0/255.0 blue:82.0/255.0 alpha:1.0];
@@ -119,7 +118,7 @@
 
 - (void)openImagePicker {
     // 照片最大可选张数
-    NSInteger imageCount = _cameraOptions->imageCount();
+    NSInteger imageCount = [self.pickOptions sy_integerForKey:@"imageCount"];
     // 显示内部拍照按钮
     BOOL isCamera        = [self.pickOptions sy_boolForKey:@"isCamera"];
     BOOL isCrop          = [self.pickOptions sy_boolForKey:@"isCrop"];
@@ -408,7 +407,7 @@
     NSData *writeData = nil;
     NSMutableString *filePath = [NSMutableString string];
     BOOL isPNG = [fileExtension hasSuffix:@"PNG"] || [fileExtension hasSuffix:@"png"];
-    BOOL compressFocusAlpha = _cameraOptions->compressFocusAlpha();
+    BOOL compressFocusAlpha = [self.pickOptions sy_boolForKey:@"compressFocusAlpha"];
     
     if (isGIF) {
         image = [UIImage sd_tz_animatedGIFWithData:data];
