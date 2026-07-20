@@ -31,7 +31,7 @@ export type ImagePickerOption = {
     showSelectedIndex: boolean, // 是否显示序号， 默认不显示
   }
 
-  interface SelectedPhoto {
+export interface SelectedPhoto {
     width: number, 	 //图片宽度
     height: number,  	//图片高度
     uri: string,	  //图片路径
@@ -45,7 +45,7 @@ const { width } = Dimensions.get('window');
 /**
  * 默认参数
  */
-const defaultOptions = {
+export const defaultOptions = {
     imageCount: 6,             // 最大选择图片数目，默认6
     isRecordSelected: false,   // 是否已选图片
     isCamera: true,            // 是否允许用户在内部拍照，默认true
@@ -74,15 +74,15 @@ const defaultOptions = {
 };
 export type VideoPickerOption = {
     videoCount: number,          // 最大选择视频数目，默认1
-    isCamera: boolean,           // 是否允许录制视频，默认true
-    MaxSecond: number,           // 选择视频最大时长，默认是180秒
-    MinSecond: number,           // 选择视频最小时长，默认是1秒
-    videoMaximumDuration: number, // 视频最大录制时长，默认是600秒
-    sortAscendingByModificationDate: boolean, // 按修改时间升序，默认是YES
-    showSelectedIndex: boolean,  // 是否显示序号，默认不显示
+    isCamera?: boolean,           // 是否允许录制视频，默认true
+    MaxSecond?: number,           // 选择视频最大时长，默认是180秒
+    MinSecond?: number,           // 选择视频最小时长，默认是1秒
+    videoMaximumDuration?: number, // 视频最大录制时长，默认是600秒
+    sortAscendingByModificationDate?: boolean, // 按修改时间升序，默认是YES
+    showSelectedIndex?: boolean,  // 是否显示序号，默认不显示
 }
 
-interface SelectedVideo {
+export interface SelectedVideo {
     path: string,           // 视频路径
     size: number,           // 文件大小，单位为字节
     width: number,          // 视频宽度
@@ -92,7 +92,7 @@ interface SelectedVideo {
     filename?: string,      // 视频文件名
 }
 
-const defaultVideoOptions = {
+export const defaultVideoOptions = {
     videoCount: 1,
     isCamera: true,
     MaxSecond: 180,
@@ -103,8 +103,8 @@ const defaultVideoOptions = {
 }
 
 export interface Spec extends TurboModule {
-  asyncShowImagePicker(options:ImagePickerOption): Promise<Array<SelectedPhoto>>;
-  asyncShowVideoPicker(options:VideoPickerOption): Promise<Array<SelectedVideo>>;
+  asyncShowImagePicker(options:Object): Promise<Array<SelectedPhoto>>;
+  asyncShowVideoPicker(options:Object): Promise<Array<SelectedVideo>>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('NativeImagePicker');
