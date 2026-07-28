@@ -69,6 +69,7 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
             .setSelectionMode(SelectModeConfig.SINGLE)
             .setMaxSelectNum(1)
             .isDisplayCamera(isCamera)
+            .isAutoVideoPlay(true)
             .setSelectorUIStyle(getNoCountStyle())
             .setInjectLayoutResourceListener { _, resourceSource ->
                 when (resourceSource) {
