@@ -10,6 +10,7 @@ import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.module.annotations.ReactModule
 import com.luck.picture.lib.basic.PictureSelector
+import com.luck.picture.lib.config.InjectResourceSource
 import com.luck.picture.lib.config.SelectMimeType
 import com.luck.picture.lib.config.SelectModeConfig
 import com.luck.picture.lib.entity.LocalMedia
@@ -69,6 +70,15 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
             .setMaxSelectNum(1)
             .isDisplayCamera(isCamera)
             .setSelectorUIStyle(getNoCountStyle())
+            .setInjectLayoutResourceListener { _, resourceSource ->
+                when (resourceSource) {
+                    InjectResourceSource.MAIN_SELECTOR_LAYOUT_RESOURCE ->
+                        R.layout.image_picker_fragment_selector
+                    InjectResourceSource.MAIN_ITEM_VIDEO_LAYOUT_RESOURCE ->
+                        R.layout.image_picker_item_grid_video
+                    else -> InjectResourceSource.DEFAULT_LAYOUT_RESOURCE
+                }
+            }
             .setImageEngine(imageEngine)
             .forResult(object : OnResultCallbackListener<LocalMedia> {
                 override fun onResult(localMediaList: ArrayList<LocalMedia?>?) {
@@ -92,9 +102,15 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
                 // 隐藏选择后的数字/角标索引
                 isSelectNumberStyle = false
                 isPreviewSelectNumberStyle = false
-//                selectBackground = android.R.color.transparent
+                // 预览页点击“下一步”时，自动选择当前视频并返回
+                isCompleteSelectRelativeTop = true
+                // 隐藏列表页和预览页的勾选按钮
+                selectBackground = android.R.color.transparent
+                previewSelectBackground = android.R.color.transparent
                 selectText = "下一步"
                 selectTextColor = Color.WHITE
+                selectNormalText = "下一步"
+                selectNormalTextColor = Color.WHITE
             }
             bottomBarStyle = BottomNavBarStyle().apply {
                 isCompleteCountTips = false
@@ -102,8 +118,8 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
                 bottomPreviewSelectText = "" // 选中文件后的文字设为空
 
                 // （可选保障）为了防止有默认的点击态背景，你可以顺手把它的颜色也设为透明
-                bottomPreviewNormalTextColor = android.R.color.transparent
-                bottomPreviewSelectTextColor = android.R.color.transparent
+                bottomPreviewNormalTextColor = Color.WHITE
+                bottomPreviewSelectTextColor = Color.WHITE
             }
 
             titleBarStyle = TitleBarStyle().apply {
