@@ -1,5 +1,6 @@
 package com.htreactnative.imagepicker
 
+import android.content.pm.ActivityInfo
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import com.facebook.react.bridge.Promise
@@ -40,6 +41,7 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
         pickerOptions = options;
         PictureSelector.create(reactApplicationContext.currentActivity)
             .openGallery(SelectMimeType.ofImage())
+            .setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
             .setImageEngine(imageEngine)
             .forResult(object : OnResultCallbackListener<LocalMedia> {
                 override fun onResult(localMediaList: ArrayList<LocalMedia?>?) {
@@ -66,6 +68,7 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
         val isCamera = options?.getBoolean("isCamera") ?: false
         PictureSelector.create(reactApplicationContext.currentActivity)
             .openGallery(SelectMimeType.ofVideo())
+            .setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
             .setSelectionMode(SelectModeConfig.SINGLE)
             .setMaxSelectNum(1)
             .isDisplayCamera(isCamera)
