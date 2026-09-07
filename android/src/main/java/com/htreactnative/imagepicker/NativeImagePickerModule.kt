@@ -39,9 +39,24 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
         promise: Promise?
     ) {
         pickerOptions = options;
+        val imageCount = options?.getInt("imageCount") ?: 1
+        val isCamera = options?.getBoolean("isCamera") ?: false
         PictureSelector.create(reactApplicationContext.currentActivity)
             .openGallery(SelectMimeType.ofImage())
             .setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+            .setSelectionMode(
+                if (imageCount > 1) SelectModeConfig.MULTIPLE else SelectModeConfig.SINGLE
+            )
+            .setMaxSelectNum(imageCount)
+            .isDisplayCamera(isCamera)
+            .setSelectorUIStyle(getImagePickerStyle())
+            .setInjectLayoutResourceListener { _, resourceSource ->
+                when (resourceSource) {
+                    InjectResourceSource.MAIN_SELECTOR_LAYOUT_RESOURCE ->
+                        R.layout.image_picker_fragment_selector_no_preview
+                    else -> InjectResourceSource.DEFAULT_LAYOUT_RESOURCE
+                }
+            }
             .setImageEngine(imageEngine)
             .forResult(object : OnResultCallbackListener<LocalMedia> {
                 override fun onResult(localMediaList: ArrayList<LocalMedia?>?) {
@@ -53,7 +68,7 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
                 }
 
                 override fun onCancel() {
-                    promise?.reject("", "取消")
+                    promise?.resolve(WritableNativeArray())
                 }
 
             })
@@ -106,7 +121,7 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
                 // 隐藏选择后的数字/角标索引
                 isSelectNumberStyle = false
                 isPreviewSelectNumberStyle = false
-                // 预览页点击“下一步”时，自动选择当前视频并返回
+                // 预览页点击“下一步”时，自动选择当前媒体并返回
                 isCompleteSelectRelativeTop = true
                 // 隐藏列表页和预览页的勾选按钮
                 selectBackground = android.R.color.transparent
@@ -130,6 +145,31 @@ class NativeImagePickerModule(reactContext: ReactApplicationContext) :
 
             }
 
+        }
+    }
+
+    private fun getImagePickerStyle(): PictureSelectorStyle {
+        return PictureSelectorStyle().apply {
+            selectMainStyle = SelectMainStyle().apply {
+                // 保留多选勾选控件，但不显示选中序号
+                isSelectNumberStyle = false
+                isPreviewSelectNumberStyle = false
+                // 将真正的完成按钮放到右上角
+                isCompleteSelectRelativeTop = true
+                // 预览页的选中按钮放到底部，避免与右上角“下一步”重合
+                isPreviewSelectRelativeBottom = true
+                selectText = "下一步"
+                selectTextColor = Color.WHITE
+                selectNormalText = "下一步"
+                selectNormalTextColor = Color.WHITE
+            }
+            bottomBarStyle = BottomNavBarStyle().apply {
+                isCompleteCountTips = false
+            }
+            titleBarStyle = TitleBarStyle().apply {
+                // 左上角箭头已可返回，隐藏右上角原“取消”按钮
+                isHideCancelButton = true
+            }
         }
     }
 

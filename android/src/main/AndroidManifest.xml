@@ -1,2 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <activity
+      android:name="com.luck.picture.lib.basic.PictureSelectorSupporterActivity"
+      android:screenOrientation="portrait" />
+    <activity
+      android:name="com.luck.picture.lib.basic.PictureSelectorTransparentActivity"
+      android:screenOrientation="portrait" />
+  </application>
 </manifest>
